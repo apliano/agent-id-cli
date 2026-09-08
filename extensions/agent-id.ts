@@ -604,12 +604,18 @@ export default function agentIdExtension(pi: ExtensionAPI): void {
   pi.on("agent_end", async (event, context) => {
     if (event.willContinue) return;
     const sessionId = context.sessionManager.getSessionId();
-    if (!sessionId) return;
+    if (!sessionId || sessionId !== currentSessionId) return;
     const session = summarySession(sessionId);
     const controller = session.abort;
     const epoch = session.epoch;
     session.queue = session.queue.then(async () => {
-      if (session.epoch !== epoch || controller.signal.aborted) return;
+      if (
+        session.epoch !== epoch ||
+        controller.signal.aborted ||
+        currentSessionId !== sessionId
+      ) {
+        return;
+      }
       updateActivityState(context, "idle");
       await maintainAutoSummary(
         pi,

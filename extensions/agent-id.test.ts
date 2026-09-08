@@ -71,6 +71,59 @@ describe("agent-id subprocess output and context", () => {
       rmSync(root, { recursive: true, force: true });
     }
   });
+
+  test("does not let a late agent end overwrite stopped state", () => {
+    const root = mkdtempSync(path.join(tmpdir(), "agent-id-shutdown-"));
+    try {
+      const extensionPath = path.join(import.meta.dir, "agent-id.ts");
+      const script = `
+        import agentIdExtension from ${JSON.stringify(extensionPath)};
+        const handlers = {};
+        const pi = {
+          on(event, handler) { handlers[event] = handler; },
+          appendEntry() {},
+        };
+        agentIdExtension(pi);
+        const context = {
+          cwd: "/tmp/shutdown",
+          sessionManager: {
+            getSessionId: () => "late-end-session",
+            getSessionFile: () => "/tmp/late-end-session.jsonl",
+            getBranch: () => [],
+          },
+          models: { resolve: () => undefined },
+          modelRegistry: { resolver: () => undefined },
+        };
+        handlers.session_start?.({}, context);
+        handlers.agent_start?.({}, context);
+        handlers.session_shutdown?.({}, context);
+        await handlers.agent_end?.(
+          { type: "agent_end", messages: [], willContinue: false },
+          context,
+        );
+      `;
+      const result = Bun.spawnSync(["bun", "-e", script], {
+        env: { ...process.env, AGENT_ID_HOME: root },
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      expect(result.exitCode).toBe(0);
+
+      const lookup = Bun.spawnSync(
+        ["agent-id", "lookup", "--session-id", "late-end-session", "--json"],
+        {
+          env: { ...process.env, AGENT_ID_HOME: root },
+          stdout: "pipe",
+          stderr: "pipe",
+        },
+      );
+      expect(lookup.exitCode).toBe(0);
+      const assignment = JSON.parse(new TextDecoder().decode(lookup.stdout));
+      expect(assignment.state.value).toBe("stopped");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });
 
 describe("OMP session metadata", () => {
