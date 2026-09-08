@@ -102,7 +102,10 @@ struct WorkspaceInfo {
     worktree: Option<HerdrWorktree>,
 }
 
-pub fn augment_discovery(assignments: Vec<Assignment>) -> Vec<DiscoveredAssignment> {
+pub fn augment_discovery(
+    assignments: Vec<Assignment>,
+    include_all: bool,
+) -> Vec<DiscoveredAssignment> {
     if !herdr_environment()
         || !assignments
             .iter()
@@ -112,7 +115,17 @@ pub fn augment_discovery(assignments: Vec<Assignment>) -> Vec<DiscoveredAssignme
     }
 
     match load_snapshot() {
-        Ok(snapshot) => join_snapshot(assignments, snapshot, Utc::now()),
+        Ok(snapshot) => {
+            let records = join_snapshot(assignments, snapshot, Utc::now());
+            if include_all {
+                records
+            } else {
+                records
+                    .into_iter()
+                    .filter(|record| record.runtime.is_some())
+                    .collect()
+            }
+        }
         Err(error) => {
             eprintln!("agent-id: unable to enrich discover from Herdr: {error:#}");
             base_records(assignments)

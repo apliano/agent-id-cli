@@ -55,7 +55,7 @@ Updates summary, OMP lifecycle state, working-directory metadata, or namespaced 
 
 ### `agent-id discover`
 
-Lists non-stopped assignments by `updated_at`, newest first. Use `--all` to include stopped assignments. The top-level state is materialized from Herdr runtime state first, then the OMP extension state, and otherwise `unknown`. Human-readable results include available summaries, materialized states, and working directories; JSON includes the complete assignments. Inside Herdr, discover queries `herdr api snapshot` and adds a non-persistent `runtime` projection with the Herdr state and locations for assignments whose OMP session-file metadata exactly matches a live Herdr agent.
+Lists non-stopped assignments by `updated_at`, newest first. Use `--all` to include stopped assignments. Outside Herdr, discovery includes all matching non-stopped registry assignments. Inside Herdr, default discovery is limited to assignments matched to live Herdr agents; `--all` retains all registry assignments while adding runtime projections. The top-level state is materialized from Herdr runtime state first, then the OMP extension state, and otherwise `unknown`. Human-readable results include available summaries, materialized states, and working directories; JSON includes the complete assignments. Herdr runtime matching uses exact OMP session-file metadata.
 
 ```text
 --limit N           Maximum records (default 20; zero means all)

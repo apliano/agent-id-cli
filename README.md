@@ -43,7 +43,7 @@ agent-id discover --all
 agent-id lookup "Spring Oak of Darkwood"
 ```
 
-Discovery shows non-stopped sessions by default, including available summaries, materialized states, and working directories. Herdr state takes precedence when runtime information is available, followed by the OMP extension state, with `unknown` when neither signal exists. Use `--all` to include stopped sessions from the registry.
+Discovery shows non-stopped sessions by default, including available summaries, materialized states, and working directories. When run inside Herdr, default discovery is limited to identities matched to live Herdr agents; use `--all` to include historical registry records. Herdr state takes precedence when runtime information is available, followed by the OMP extension state, with `unknown` when neither signal exists.
 
 For standalone use without OMP, register a harness session ID once and look it up later:
 

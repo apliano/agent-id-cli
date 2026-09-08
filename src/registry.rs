@@ -476,7 +476,7 @@ pub fn execute_annotate(args: &AnnotateArgs) -> Result<()> {
 
 pub fn execute_discover(args: &DiscoverArgs) -> Result<()> {
     let assignments = Registry::from_env()?.discover(args.recent, args.realm.as_deref())?;
-    let mut records = crate::herdr::augment_discovery(assignments);
+    let mut records = crate::herdr::augment_discovery(assignments, args.all);
     if !args.all {
         records.retain(|record| record.assignment.state.value != ActivityStateValue::Stopped);
     }

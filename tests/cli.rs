@@ -653,6 +653,12 @@ fn discover_overlays_matching_herdr_runtime_without_persisting_it() {
         .unwrap();
     assert!(annotated.status.success(), "{annotated:?}");
 
+    let unmatched = command(&root)
+        .args(["register", "unmatched-session", "--json"])
+        .output()
+        .unwrap();
+    assert!(unmatched.status.success(), "{unmatched:?}");
+
     let herdr = root.path().join("fake-herdr");
     executable(
         &herdr,
@@ -671,6 +677,7 @@ JSON
     let output = discover.args(["discover", "--json"]).output().unwrap();
     assert!(output.status.success(), "{output:?}");
     let records: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(records.as_array().unwrap().len(), 1);
     let runtime = &records[0]["runtime"];
     assert_eq!(records[0]["state"]["value"], "working");
     assert_eq!(runtime["provider"], "herdr");
@@ -711,8 +718,14 @@ JSON
     let degraded = degraded.args(["discover", "--json"]).output().unwrap();
     assert!(degraded.status.success(), "{degraded:?}");
     let records: Value = serde_json::from_slice(&degraded.stdout).unwrap();
-    assert_eq!(records[0]["state"]["value"], "idle");
-    assert!(records[0].get("runtime").is_none());
+    let degraded_runtime = records
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|record| record["session_id"] == "runtime-session")
+        .unwrap();
+    assert_eq!(degraded_runtime["state"]["value"], "idle");
+    assert!(degraded_runtime.get("runtime").is_none());
     assert!(String::from_utf8(degraded.stderr)
         .unwrap()
         .contains("unable to enrich discover from Herdr"));
