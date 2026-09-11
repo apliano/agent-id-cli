@@ -1,7 +1,7 @@
 {
   "name": "agent-id-cli",
   "description": "Portable identity registry and OMP extension for coding-agent sessions",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "private": true,
   "license": "MIT",
   "repository": {
