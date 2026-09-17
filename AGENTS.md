@@ -85,13 +85,15 @@ Prints the agent-facing workflow and command contract. `--prelude` omits the com
 
 | OMP event | Extension behavior |
 |---|---|
-| Session start, switch, branch, or tree navigation | Looks up or registers the identity, records the OMP session file and working directory, and publishes `idle` under `extensions.omp`. |
+| Session start, switch, branch, or tree navigation | Looks up or registers the identity, records the OMP session file and working directory, publishes `idle` under `extensions.omp`, and shows the slug as the `agent-id` status in OMP's status line. |
 | Agent turn starts | Refreshes the OMP session file and publishes `working` under `extensions.omp`. |
 | Agent turn ends | Publishes `idle` under `extensions.omp` and may refresh its current-work summary. |
 | Tool call | Injects `AGENT_ID_SESSION_ID` only into matching `agent-id current` invocations through OMP's Bash tool. |
-| Session shuts down | Publishes `stopped` under `extensions.omp`. |
+| Session shuts down | Publishes `stopped` under `extensions.omp` and clears the `agent-id` status. |
 
 The plugin bundles `skills/agent-id/SKILL.md` for on-demand identity and neighbor-selection guidance. The extension does not insert instructional context into session branches.
+
+The `agent-id` status renders wherever OMP places extension statuses: below the status line by default (`statusLine.showHookStatus`), or inline through the `status` segment of a custom status line. The status key is stable so a local extension publishing the same identity replaces it rather than duplicating it.
 
 The extension does not register an identity tool. For matching `agent-id current` invocations through OMP's Bash tool, the extension injects the current session ID as `AGENT_ID_SESSION_ID`. It preserves a caller-provided value and does not modify the parent shell or unrelated Bash commands.
 

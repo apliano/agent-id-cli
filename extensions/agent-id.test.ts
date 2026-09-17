@@ -124,6 +124,61 @@ describe("agent-id subprocess output and context", () => {
       rmSync(root, { recursive: true, force: true });
     }
   });
+
+  test("publishes the session slug as a status and clears it on shutdown", () => {
+    const root = mkdtempSync(path.join(tmpdir(), "agent-id-status-"));
+    try {
+      const extensionPath = path.join(import.meta.dir, "agent-id.ts");
+      const script = `
+        import agentIdExtension from ${JSON.stringify(extensionPath)};
+        const handlers = {};
+        const statuses = [];
+        const pi = {
+          on(event, handler) { handlers[event] = handler; },
+          appendEntry() {},
+        };
+        agentIdExtension(pi);
+        const context = {
+          cwd: "/tmp/status",
+          ui: { setStatus(key, text) { statuses.push([key, text ?? null]); } },
+          sessionManager: {
+            getSessionId: () => "status-session",
+            getBranch: () => [],
+          },
+          models: { resolve: () => undefined },
+          modelRegistry: { resolver: () => undefined },
+        };
+        handlers.session_start?.({}, context);
+        handlers.agent_start?.({}, context);
+        handlers.session_shutdown?.({}, context);
+        console.log(JSON.stringify(statuses));
+      `;
+      const result = Bun.spawnSync(["bun", "-e", script], {
+        env: { ...process.env, AGENT_ID_HOME: root },
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      expect(result.exitCode).toBe(0);
+
+      const lookup = Bun.spawnSync(
+        ["agent-id", "lookup", "--session-id", "status-session", "--json"],
+        {
+          env: { ...process.env, AGENT_ID_HOME: root },
+          stdout: "pipe",
+          stderr: "pipe",
+        },
+      );
+      expect(lookup.exitCode).toBe(0);
+      const { slug } = JSON.parse(new TextDecoder().decode(lookup.stdout));
+      expect(JSON.parse(new TextDecoder().decode(result.stdout))).toEqual([
+        ["agent-id", slug],
+        ["agent-id", slug],
+        ["agent-id", null],
+      ]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });
 
 describe("OMP session metadata", () => {

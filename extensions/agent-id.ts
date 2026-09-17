@@ -21,6 +21,7 @@ type SummaryModel = { provider: string; id: string; baseUrl?: string };
 
 type SessionContext = {
   cwd: string;
+  ui?: { setStatus(key: string, text: string | undefined): void };
   sessionManager: {
     getSessionId(): string | undefined;
     getSessionFile?(): string | undefined;
@@ -43,6 +44,9 @@ export type ToolCallEvent = {
 
 export const AGENT_ID_CURRENT_COMMAND =
   /(?:^|[;&|`$()]\s*)(?:(?:[A-Za-z_][A-Za-z0-9_]*=(?:"[^"]*"|'[^']*'|\S+)\s+)*)(?:\S*\/)?agent-id\s+(?:--[A-Za-z0-9_-]+(?:=(?:"[^"]*"|'[^']*'|\S+))?\s+|-[A-Za-z0-9]\s+)*current(?=\s|$)/;
+// Status-line key for the session slug. Shared with any local extension that
+// publishes the same identity so the two never render side by side.
+export const IDENTITY_STATUS_KEY = "agent-id";
 export const ACTIVITY_STATE_VALUES = [
   "working",
   "idle",
@@ -256,12 +260,19 @@ function updateActivityState(
   const sessionId = context.sessionManager.getSessionId();
   if (!sessionId) return;
   try {
-    ensureIdentity(sessionId);
+    const { assignment } = ensureIdentity(sessionId);
     annotateIdentity(sessionId, {
       cwd: context.cwd,
       extensions: sessionFileExtension(context, value),
     });
+    // The slug is what other agents address (`agent-mail send --to <slug>`), so
+    // surface it where a human can read it off the screen.
+    context.ui?.setStatus(
+      IDENTITY_STATUS_KEY,
+      value === "stopped" ? undefined : assignment.slug,
+    );
   } catch (error) {
+    context.ui?.setStatus(IDENTITY_STATUS_KEY, undefined);
     const detail = error instanceof Error ? error.message : String(error);
     console.warn(`agent-id: unable to update the activity state: ${detail}`);
   }
